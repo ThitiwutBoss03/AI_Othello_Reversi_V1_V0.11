@@ -240,5 +240,100 @@ class NorAgent(ReversiAgent):
 # TODO: Create your own agent
 
 class NorAgent_Killer(ReversiAgent):
-    def search(self, board, valid_actions, output_move_row, output_move_column):
-        return super().search(board, valid_actions, output_move_row, output_move_column)
+    """def search(self, board, valid_actions, output_move_row, output_move_column):
+        return super().search(board, valid_actions, output_move_row, output_move_column)"""
+    
+    DEPTH_LIMIT = 6
+
+    """def search(
+            self, board, valid_actions,
+            output_move_row, output_move_column):
+        # valid_actions = actions(board, self.player)
+        # print(valid_actions)
+        if len(valid_actions) == 0:
+            output_move_row.value = -1
+            output_move_column.value = -1
+            return  # skip the turn.
+        v = -999999
+        # default to first valid action
+        output_move_row.value = valid_actions[0][0]
+        output_move_column.value = valid_actions[0][1]
+        for action in valid_actions:
+            new_v = self.min_value(transition(board, self.player, action), depth=1)
+            if new_v > v:
+                v = new_v
+                output_move_row.value = action[0]
+                output_move_column.value = action[1]
+        return v"""
+    
+    def search(self, board, valid_actions, output_move_row, output_move_column, max_time):
+        start_time = time.time()
+        depth = 1
+        best_move = valid_actions[0]
+    
+        while time.time() - start_time < max_time and depth <= self.DEPTH_LIMIT:
+            v, move = self.max_value(board, depth)
+            if v > best_move[0]:
+                best_move = (v, move)
+            depth += 1
+    
+        output_move_row.value = best_move[1][0]
+        output_move_column.value = best_move[1][1]
+
+
+
+    def min_value(self, board: np.ndarray, depth: int) -> float:
+        opponent = self.player * -1  # opponent's turn
+        if is_terminal(board) or depth >= NorAgent.DEPTH_LIMIT:
+            return self.evaluation(board)
+
+        valid_actions = actions(board, opponent)
+        if len(valid_actions) == 0:
+            return self.max_value(board, depth + 1)  # skip the turn.
+    
+        v = float('inf')  # Initialize v to positive infinity
+        for action in valid_actions:
+            v = min(v, self.max_value(transition(board, opponent, action), depth + 1))
+    
+        return v
+
+    def max_value(self, board: np.ndarray, depth: int) -> float:
+        if is_terminal(board) or depth >= NorAgent.DEPTH_LIMIT:
+            return self.evaluation(board)
+    
+        valid_actions = actions(board, self.player)
+        if len(valid_actions) == 0:
+            return self.min_value(board, depth + 1)  # skip the turn.
+    
+        v = float('-inf')  # Initialize v to negative infinity
+        for action in valid_actions:
+            v = max(v, self.min_value(transition(board, self.player, action), depth + 1))
+    
+        return v
+
+    def utility(self, board: np.ndarray) -> float:
+        if (board == self.player).sum() > (board == (self.player * -1)).sum():
+            return 9999
+        elif (board == self.player).sum() < (board == (self.player * -1)).sum():
+            return -9999
+        else:
+            return 0
+
+    def evaluation(self, board: np.ndarray) -> float:
+        # Initialize weights for different features
+        piece_count_weight = 1.0
+        mobility_weight = 0.5
+        positional_weight = 0.2
+
+        player_pieces = (board == self.player).sum()
+        opponent_pieces = (board == -self.player).sum()
+        player_mobility = len(actions(board, self.player))
+        opponent_mobility = len(actions(board, -self.player))
+
+        # Calculate the evaluation score based on weighted features
+        score = (
+            piece_count_weight * (player_pieces - opponent_pieces) +
+            mobility_weight * (player_mobility - opponent_mobility)
+        )
+
+        return score

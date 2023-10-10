@@ -2,7 +2,7 @@ from game import OthelloEnv, get_legal_moves, make_move
 from tqdm import tqdm
 import asyncio
 import time
-from reversi_agent import ReversiAgent, NorAgent
+from reversi_agent import ReversiAgent, NorAgent, NorAgent_Killer
 
 
 BLACK_PLAYER = 1
@@ -16,7 +16,7 @@ async def timer(limit):
 
 
 async def main(
-        black_agent: ReversiAgent,
+        black_agent: NorAgent_Killer,
         white_agent: NorAgent,
         timelimit: int=2):
     env = OthelloEnv(render=True, verbose=False)
