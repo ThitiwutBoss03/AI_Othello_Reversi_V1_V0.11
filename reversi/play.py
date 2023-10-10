@@ -76,8 +76,8 @@ async def main(
 
 if __name__ == "__main__":
     # TODO: Change this to other agents
-    from reversi_agent import RandomAgent, NorAgent
-    black = RandomAgent(BLACK_PLAYER)
+    from reversi_agent import RandomAgent, NorAgent, NorAgent_Killer, BossAgent
+    black = BossAgent(BLACK_PLAYER)
     white = NorAgent(WHITE_PLAYER)
     asyncio.run(main(black, white, 10))
     input('Press Enter to close.')
