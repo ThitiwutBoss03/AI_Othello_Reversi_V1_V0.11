@@ -339,8 +339,8 @@ class NorAgent_Killer(ReversiAgent):
         return score
     
 class BossAgent(ReversiAgent):
-    DEPTH_LIMIT = 5
-
+    DEPTH_LIMIT = 7
+    # From our experiment, this depth limit gives the best results within a reasonable amount of time
     def search(
             self, board, valid_actions,
             output_move_row, output_move_column):
@@ -370,7 +370,7 @@ class BossAgent(ReversiAgent):
         opponent = self.player * -1  # Opponent's turn
 
         if is_terminal(board):
-            return self.evaluation(board)
+            return self.utility(board)
 
         if depth >= BossAgent.DEPTH_LIMIT:
             return self.evaluation(board)
@@ -393,7 +393,7 @@ class BossAgent(ReversiAgent):
 
     def max_value(self, board, depth, alpha, beta):
         if is_terminal(board):
-            return self.evaluation(board)
+            return self.utility(board)
 
         if depth >= BossAgent.DEPTH_LIMIT:
             return self.evaluation(board)
@@ -423,8 +423,45 @@ class BossAgent(ReversiAgent):
             return 0
 
     def evaluation(self, board: np.ndarray) -> float:
-        # A dummy evaluation that returns the difference in scores
-        return (board == self.player).sum() - (board == (self.player * -1)).sum()
+        agent_pieces = np.count_nonzero(board == self.player)
+        opponent_pieces = np.count_nonzero(board == -self.player)
+        
+        # Weights for piece count and corner control
+        piece_count_weight = 1.0
+        corner_weight = 10.0
+        
+        # Count the corners controlled by the agent and the opponent
+        agent_corner_count = 0
+        opponent_corner_count = 0
+        
+        if board[0, 0] == self.player:
+            agent_corner_count += 1
+        if board[0, 7] == self.player:
+            agent_corner_count += 1
+        if board[7, 0] == self.player:
+            agent_corner_count += 1
+        if board[7, 7] == self.player:
+            agent_corner_count += 1
+        
+        if board[0, 0] == -self.player:
+            opponent_corner_count += 1
+        if board[0, 7] == -self.player:
+            opponent_corner_count += 1
+        if board[7, 0] == -self.player:
+            opponent_corner_count += 1
+        if board[7, 7] == -self.player:
+            opponent_corner_count += 1
+        
+        # Evaluate the board using piece count and corner control
+        evaluation_score = (agent_pieces - opponent_pieces) * piece_count_weight 
+        + (agent_corner_count - opponent_corner_count) * corner_weight
+        
+        return evaluation_score
+
+
+
+
+
 
 
 

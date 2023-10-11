@@ -81,3 +81,5 @@ if __name__ == "__main__":
     white = NorAgent(WHITE_PLAYER)
     asyncio.run(main(black, white, 10))
     input('Press Enter to close.')
+
+    
