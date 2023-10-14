@@ -339,7 +339,7 @@ class NorAgent_Killer(ReversiAgent):
         return score
     
 class BossAgent(ReversiAgent):
-    DEPTH_LIMIT = 7
+    DEPTH_LIMIT = 6
     # From our experiment, this depth limit gives the best results within a reasonable amount of time
     def search(
             self, board, valid_actions,
@@ -430,7 +430,12 @@ class BossAgent(ReversiAgent):
         piece_count_weight = 1.0
         corner_weight = 10.0
         
-        # Count the corners controlled by the agent and the opponent
+        """
+        Count the corners controlled by the agent and the opponent.
+        Agent will try to avoid actions that lead opponent to get the corner
+        Citation: https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/Final_Paper.pdf
+        """
+        
         agent_corner_count = 0
         opponent_corner_count = 0
         
@@ -457,6 +462,127 @@ class BossAgent(ReversiAgent):
         + (agent_corner_count - opponent_corner_count) * corner_weight
         
         return evaluation_score
+    
+class Agent007(ReversiAgent):
+    DEPTH_LIMIT = 6
+    # From our experiment, this depth limit gives the best results within a reasonable amount of time
+    def search(
+            self, board, valid_actions,
+            output_move_row, output_move_column):
+        if len(valid_actions) == 0:
+            output_move_row.value = -1
+            output_move_column.value = -1
+            return  # skip the turn.
+
+        alpha = float("-inf")
+        beta = float("inf")
+        best_move = valid_actions[0]
+
+        for action in valid_actions:
+            new_board = transition(board, self.player, action)
+            score = self.min_value(new_board, depth=1, alpha=alpha, beta=beta)
+
+            if score > alpha:
+                alpha = score
+                best_move = action
+
+        # Check if best_move is not None before updating the shared values
+        if best_move is not None:
+            output_move_row.value = best_move[0]
+            output_move_column.value = best_move[1]
+
+    def min_value(self, board, depth, alpha, beta):
+        opponent = self.player * -1  # Opponent's turn
+
+        if is_terminal(board):
+            return self.utility(board)
+
+        if depth >= Agent007.DEPTH_LIMIT:
+            return self.evaluation(board)
+
+        valid_actions = actions(board, opponent)
+
+        if len(valid_actions) == 0:
+            return self.max_value(board, depth + 1, alpha, beta)  # Skip the turn.
+
+        for action in valid_actions:
+            new_board = transition(board, opponent, action)
+            score = self.max_value(new_board, depth + 1, alpha, beta)
+
+            beta = min(beta, score)
+
+            if beta <= alpha:
+                break
+
+        return beta
+
+    def max_value(self, board, depth, alpha, beta):
+        if is_terminal(board):
+            return self.utility(board)
+
+        if depth >= Agent007.DEPTH_LIMIT:
+            return self.evaluation(board)
+
+        valid_actions = actions(board, self.player)
+
+        if len(valid_actions) == 0:
+            return self.min_value(board, depth + 1, alpha, beta)  # Skip the turn.
+
+        for action in valid_actions:
+            new_board = transition(board, self.player, action)
+            score = self.min_value(new_board, depth + 1, alpha, beta)
+
+            alpha = max(alpha, score)
+
+            if beta <= alpha:
+                break
+
+        return alpha
+    
+    def utility(self, board: np.ndarray) -> float:
+        if (board == self.player).sum() > (board == (self.player * -1)).sum():
+            return 9999
+        elif (board == self.player).sum() < (board == (self.player * -1)).sum():
+            return -9999
+        else:
+            return 0
+
+    def evaluation(self, board: np.ndarray) -> float:
+        """
+        Use static weights heuristic values assigned to each position on the board
+        Citation: https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/Final_Paper.pdf
+        """
+        STATIC_WEIGHTS = [
+            [4, -3, 2, 2, 2, 2, -3, 4],
+            [-3, -4, -1, -1, -1, -1, -4, -3],
+            [2, -1, 1, 0, 0, 1, -1, 2],
+            [2, -1, 0, 1, 1, 0, -1, 2],
+            [2, -1, 0, 1, 1, 0, -1, 2],
+            [2, -1, 1, 0, 0, 1, -1, 2],
+            [-3, -4, -1, -1, -1, -1, -4, -3],
+            [4, -3, 2, 2, 2, 2, -3, 4]
+        ]
+        agent_pieces = np.count_nonzero(board == self.player)
+        opponent_pieces = np.count_nonzero(board == -self.player)
+        
+        # Weight for piece count
+        piece_count_weight = 1.0
+        
+        # Evaluate the board using piece count and static weights
+        evaluation_score = 0
+        
+        for i in range(8):
+            for j in range(8):
+                if board[i, j] == self.player:
+                    evaluation_score += STATIC_WEIGHTS[i][j]
+                elif board[i, j] == -self.player:
+                    evaluation_score -= STATIC_WEIGHTS[i][j]
+        
+        evaluation_score += (agent_pieces - opponent_pieces) * piece_count_weight
+        
+        return evaluation_score
+
+
 
 
 
