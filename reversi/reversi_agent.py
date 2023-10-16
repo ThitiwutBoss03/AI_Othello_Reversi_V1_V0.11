@@ -481,6 +481,112 @@ class Agent007(ReversiAgent):
         evaluation_score = max_player - min_player
         
         return evaluation_score
+    
+    
+"""Annie's agent"""
+class StudentAgent(ReversiAgent):
+    DEPTH_LIMIT = 5
+
+    def search(
+            self, board, valid_actions,
+            output_move_row, output_move_column):
+        alpha = -float('inf')
+        beta = float('inf')
+
+        if len(valid_actions) == 0:
+            output_move_row.value = -1
+            output_move_column.value = -1
+            return  # skip the turn.
+
+        best_move = valid_actions[0]
+        v = -float('inf')
+
+        for action in valid_actions:
+            new_v = self.min_value(transition(board, self.player, action), depth=1, alpha=alpha, beta=beta)
+            if new_v > v:
+                v = new_v
+                best_move = action
+            alpha = max(alpha, v)
+            if v >= beta:
+                break  # Beta cutoff
+
+        output_move_row.value = best_move[0]
+        output_move_column.value = best_move[1]
+
+    def min_value(self, board: np.ndarray, depth: int, alpha: float, beta: float) -> float:
+        opponent = self.player * -1  # opponent's turn
+        if is_terminal(board):
+            return self.utility(board)
+        if depth >= StudentAgent.DEPTH_LIMIT:
+            return self.evaluation(board)
+
+        valid_actions = actions(board, opponent)
+        if len(valid_actions) == 0:
+            return self.max_value(board, depth + 1, alpha, beta)  # skip the turn.
+
+        v = float('inf')
+        for action in valid_actions:
+            v = min(v, self.max_value(transition(board, opponent, action), depth + 1, alpha, beta))
+            if v <= alpha:
+                return v  # Alpha cutoff
+            beta = min(beta, v)
+        return v
+
+    def max_value(self, board: np.ndarray, depth: int, alpha: float, beta: float) -> float:
+        if is_terminal(board):
+            return self.utility(board)
+        if depth >= StudentAgent.DEPTH_LIMIT:
+            return self.evaluation(board)
+
+        valid_actions = actions(board, self.player)
+        if len(valid_actions) == 0:
+            return self.min_value(board, depth + 1, alpha, beta)  # skip the turn.
+
+        v = -float('inf')
+        for action in valid_actions:
+            v = max(v, self.min_value(transition(board, self.player, action), depth + 1, alpha, beta))
+            if v >= beta:
+                return v  # Beta cutoff
+            alpha = max(alpha, v)
+        return v
+
+    def utility(self, board: np.ndarray) -> float:
+        if (board == self.player).sum() > (board == (self.player * -1)).sum():
+            return 9999
+        elif (board == self.player).sum() < (board == (self.player * -1)).sum():
+            return -9999
+        else:
+            return 0
+
+    def evaluation(self, board: np.ndarray) -> float:
+
+        """
+        source of weights table: 
+        https://play-othello.appspot.com/files/Othello.pdf
+        """
+        
+        weights = [
+            [100, -20, 10, 5, 5, 10, -20, 100],
+            [-20, -50, -2, -2, -2, -2, -50, -20],
+            [10, -2, -1, -1, -1, -1, -2, 10],
+            [5, -2, -1, -1, -1, -1, -2, 5],
+            [5, -2, -1, -1, -1, -1, -2, 5],
+            [10, -2, -1, -1, -1, -1, -2, 10],
+            [-20, -50, -2, -2, -2, -2, -50, -20],
+            [100, -20, 10, 5, 5, 10, -20, 100]
+        ]
+
+        player_score = 0
+        opponent_score = 0
+
+        for i in range(8):
+            for j in range(8):
+                if board[i, j] == self.player:
+                    player_score += weights[i][j]
+                elif board[i, j] == -self.player:
+                    opponent_score += weights[i][j]
+
+        return player_score - opponent_score
 
 
 
