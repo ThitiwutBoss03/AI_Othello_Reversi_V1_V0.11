@@ -238,133 +238,6 @@ class NorAgent(ReversiAgent):
 
 
 # TODO: Create your own agent
-    
-class BossAgent(ReversiAgent):
-    DEPTH_LIMIT = 6
-
-    def search(
-            self, board, valid_actions,
-            output_move_row, output_move_column):
-        if len(valid_actions) == 0:
-            output_move_row.value = -1
-            output_move_column.value = -1
-            return  # skip the turn.
-
-        alpha = float("-inf")
-        beta = float("inf")
-        best_move = valid_actions[0]
-
-        for action in valid_actions:
-            new_board = transition(board, self.player, action)
-            score = self.min_value(new_board, depth=1, alpha=alpha, beta=beta)
-
-            if score > alpha:
-                alpha = score
-                best_move = action
-
-        # Check if best_move is not None before updating the shared values
-        if best_move is not None:
-            output_move_row.value = best_move[0]
-            output_move_column.value = best_move[1]
-
-    def min_value(self, board, depth, alpha, beta):
-        opponent = self.player * -1  # Opponent's turn
-
-        if is_terminal(board):
-            return self.utility(board)
-
-        if depth >= BossAgent.DEPTH_LIMIT:
-            return self.evaluation(board)
-
-        valid_actions = actions(board, opponent)
-
-        if len(valid_actions) == 0:
-            return self.max_value(board, depth + 1, alpha, beta)  # Skip the turn.
-
-        for action in valid_actions:
-            new_board = transition(board, opponent, action)
-            score = self.max_value(new_board, depth + 1, alpha, beta)
-
-            beta = min(beta, score)
-
-            if beta <= alpha:
-                break
-
-        return beta
-
-    def max_value(self, board, depth, alpha, beta):
-        if is_terminal(board):
-            return self.utility(board)
-
-        if depth >= BossAgent.DEPTH_LIMIT:
-            return self.evaluation(board)
-
-        valid_actions = actions(board, self.player)
-
-        if len(valid_actions) == 0:
-            return self.min_value(board, depth + 1, alpha, beta)  # Skip the turn.
-
-        for action in valid_actions:
-            new_board = transition(board, self.player, action)
-            score = self.min_value(new_board, depth + 1, alpha, beta)
-
-            alpha = max(alpha, score)
-
-            if beta <= alpha:
-                break
-
-        return alpha
-    
-    def utility(self, board: np.ndarray) -> float:
-        if (board == self.player).sum() > (board == (self.player * -1)).sum():
-            return 9999
-        elif (board == self.player).sum() < (board == (self.player * -1)).sum():
-            return -9999
-        else:
-            return 0
-
-    def evaluation(self, board: np.ndarray) -> float:
-        # Count the number of pieces controlled by the agent and the opponent
-        agent_pieces = np.count_nonzero(board == self.player)
-        opponent_pieces = np.count_nonzero(board == -self.player)
-        
-        # Weights for piece count and corner control
-        piece_count_weight = 1.0
-        corner_weight = 10.0
-        
-        """
-        Count the corners controlled by the agent and the opponent.
-        Agent will try to avoid actions that lead opponent to get the corner
-        Citation: https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/Final_Paper.pdf
-        """
-        
-        agent_corner_count = 0
-        opponent_corner_count = 0
-        
-        # Check each corner of the board for agent and opponent control
-        if board[0, 0] == self.player:
-            agent_corner_count += 1
-        if board[0, 7] == self.player:
-            agent_corner_count += 1
-        if board[7, 0] == self.player:
-            agent_corner_count += 1
-        if board[7, 7] == self.player:
-            agent_corner_count += 1
-        
-        if board[0, 0] == -self.player:
-            opponent_corner_count += 1
-        if board[0, 7] == -self.player:
-            opponent_corner_count += 1
-        if board[7, 0] == -self.player:
-            opponent_corner_count += 1
-        if board[7, 7] == -self.player:
-            opponent_corner_count += 1
-        
-        # Evaluate the board using piece count and corner control
-        evaluation_score = (agent_pieces - opponent_pieces) * piece_count_weight 
-        + (agent_corner_count - opponent_corner_count) * corner_weight
-        
-        return evaluation_score # Return the evaluation score
 
 """Uses Static Weight as evaluation function"""
 class Agent007(ReversiAgent):
@@ -491,7 +364,7 @@ class Agent007(ReversiAgent):
     
 """Uses heuristic components and static weight table as evaluation function"""
 class Agent47(ReversiAgent):
-    DEPTH_LIMIT = 5
+    DEPTH_LIMIT = 6
 
     def search(
             self, board, valid_actions,
@@ -579,6 +452,11 @@ class Agent47(ReversiAgent):
             return 0
 
     def evaluation(self, board: np.ndarray) -> float:
+        """
+        Use Component wise heuristic function
+        Source: https://courses.cs.washington.edu/courses/cse573/04au/Project/mini1/RUSSIA/Final_Paper.pdf
+        Section 5.1.1-5.1.3 Page 5-6
+        """
         max_player = self.player
         min_player = -self.player
 
@@ -607,7 +485,7 @@ class Agent47(ReversiAgent):
             min_player_corner += 1
         if board[7, 7] == min_player:
             min_player_corner += 1
-
+        
         coin_parity = 100 * (max_player_coins - min_player_coins) / (max_player_coins + min_player_coins)
 
         if max_player_mobility + min_player_mobility != 0:
@@ -655,111 +533,6 @@ class Agent47(ReversiAgent):
         evaluation_score = coin_parity + mobility + corner + weight
 
         return evaluation_score
-
-"""Annie's agent"""
-class StudentAgent(ReversiAgent):
-    DEPTH_LIMIT = 5
-
-    def search(
-            self, board, valid_actions,
-            output_move_row, output_move_column):
-        alpha = -float('inf')
-        beta = float('inf')
-
-        if len(valid_actions) == 0:
-            output_move_row.value = -1
-            output_move_column.value = -1
-            return  # skip the turn.
-
-        best_move = valid_actions[0]
-        v = -float('inf')
-
-        for action in valid_actions:
-            new_v = self.min_value(transition(board, self.player, action), depth=1, alpha=alpha, beta=beta)
-            if new_v > v:
-                v = new_v
-                best_move = action
-            alpha = max(alpha, v)
-            if v >= beta:
-                break  # Beta cutoff
-
-        output_move_row.value = best_move[0]
-        output_move_column.value = best_move[1]
-
-    def min_value(self, board: np.ndarray, depth: int, alpha: float, beta: float) -> float:
-        opponent = self.player * -1  # opponent's turn
-        if is_terminal(board):
-            return self.utility(board)
-        if depth >= StudentAgent.DEPTH_LIMIT:
-            return self.evaluation(board)
-
-        valid_actions = actions(board, opponent)
-        if len(valid_actions) == 0:
-            return self.max_value(board, depth + 1, alpha, beta)  # skip the turn.
-
-        v = float('inf')
-        for action in valid_actions:
-            v = min(v, self.max_value(transition(board, opponent, action), depth + 1, alpha, beta))
-            if v <= alpha:
-                return v  # Alpha cutoff
-            beta = min(beta, v)
-        return v
-
-    def max_value(self, board: np.ndarray, depth: int, alpha: float, beta: float) -> float:
-        if is_terminal(board):
-            return self.utility(board)
-        if depth >= StudentAgent.DEPTH_LIMIT:
-            return self.evaluation(board)
-
-        valid_actions = actions(board, self.player)
-        if len(valid_actions) == 0:
-            return self.min_value(board, depth + 1, alpha, beta)  # skip the turn.
-
-        v = -float('inf')
-        for action in valid_actions:
-            v = max(v, self.min_value(transition(board, self.player, action), depth + 1, alpha, beta))
-            if v >= beta:
-                return v  # Beta cutoff
-            alpha = max(alpha, v)
-        return v
-
-    def utility(self, board: np.ndarray) -> float:
-        if (board == self.player).sum() > (board == (self.player * -1)).sum():
-            return 9999
-        elif (board == self.player).sum() < (board == (self.player * -1)).sum():
-            return -9999
-        else:
-            return 0
-
-    def evaluation(self, board: np.ndarray) -> float:
-
-        """
-        source of weights table: 
-        https://play-othello.appspot.com/files/Othello.pdf
-        """
-        
-        weights = [
-            [100, -20, 10, 5, 5, 10, -20, 100],
-            [-20, -50, -2, -2, -2, -2, -50, -20],
-            [10, -2, -1, -1, -1, -1, -2, 10],
-            [5, -2, -1, -1, -1, -1, -2, 5],
-            [5, -2, -1, -1, -1, -1, -2, 5],
-            [10, -2, -1, -1, -1, -1, -2, 10],
-            [-20, -50, -2, -2, -2, -2, -50, -20],
-            [100, -20, 10, 5, 5, 10, -20, 100]
-        ]
-
-        player_score = 0
-        opponent_score = 0
-
-        for i in range(8):
-            for j in range(8):
-                if board[i, j] == self.player:
-                    player_score += weights[i][j]
-                elif board[i, j] == -self.player:
-                    opponent_score += weights[i][j]
-
-        return player_score - opponent_score
 
 
 
