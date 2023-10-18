@@ -324,6 +324,7 @@ class BossAgent(ReversiAgent):
             return 0
 
     def evaluation(self, board: np.ndarray) -> float:
+        # Count the number of pieces controlled by the agent and the opponent
         agent_pieces = np.count_nonzero(board == self.player)
         opponent_pieces = np.count_nonzero(board == -self.player)
         
@@ -340,6 +341,7 @@ class BossAgent(ReversiAgent):
         agent_corner_count = 0
         opponent_corner_count = 0
         
+        # Check each corner of the board for agent and opponent control
         if board[0, 0] == self.player:
             agent_corner_count += 1
         if board[0, 7] == self.player:
@@ -362,7 +364,7 @@ class BossAgent(ReversiAgent):
         evaluation_score = (agent_pieces - opponent_pieces) * piece_count_weight 
         + (agent_corner_count - opponent_corner_count) * corner_weight
         
-        return evaluation_score
+        return evaluation_score # Return the evaluation score
 
 """Uses Static Weight as evaluation function"""
 class Agent007(ReversiAgent):
@@ -371,6 +373,7 @@ class Agent007(ReversiAgent):
     def search(
             self, board, valid_actions,
             output_move_row, output_move_column):
+        # Check if there are no valid actions to take
         if len(valid_actions) == 0:
             output_move_row.value = -1
             output_move_column.value = -1
@@ -399,21 +402,21 @@ class Agent007(ReversiAgent):
         opponent = self.player * -1  # Opponent's turn
 
         if is_terminal(board):
-            return self.utility(board)
+            return self.utility(board) # Return the utility if it's a terminal state
 
-        if depth >= BossAgent.DEPTH_LIMIT:
-            return self.evaluation(board)
+        if depth >= Agent007.DEPTH_LIMIT:
+            return self.evaluation(board) # Return the evaluation if depth limit is reached
 
-        valid_actions = actions(board, opponent)
+        valid_actions = actions(board, opponent) # Get valid actions for the opponent
 
         if len(valid_actions) == 0:
-            return self.max_value(board, depth + 1, alpha, beta)  # Skip the turn.
+            return self.max_value(board, depth + 1, alpha, beta)  # Skip the turn
 
         for action in valid_actions:
-            new_board = transition(board, opponent, action)
-            score = self.max_value(new_board, depth + 1, alpha, beta)
+            new_board = transition(board, opponent, action) # Make a hypothetical opponent's move
+            score = self.max_value(new_board, depth + 1, alpha, beta) # Calculate the score
 
-            beta = min(beta, score)
+            beta = min(beta, score) # Update beta value
 
             if beta <= alpha:
                 return beta
@@ -422,21 +425,21 @@ class Agent007(ReversiAgent):
 
     def max_value(self, board, depth, alpha, beta):
         if is_terminal(board):
-            return self.utility(board)
+            return self.utility(board) # Return the utility if it's a terminal state
 
-        if depth >= BossAgent.DEPTH_LIMIT:
-            return self.evaluation(board)
+        if depth >= Agent007.DEPTH_LIMIT:
+            return self.evaluation(board) # Return the evaluation if depth limit is reached
 
-        valid_actions = actions(board, self.player)
+        valid_actions = actions(board, self.player) # Get valid actions for the player
 
         if len(valid_actions) == 0:
-            return self.min_value(board, depth + 1, alpha, beta)  # Skip the turn.
+            return self.min_value(board, depth + 1, alpha, beta)  # Skip the turn
 
         for action in valid_actions:
-            new_board = transition(board, self.player, action)
-            score = self.min_value(new_board, depth + 1, alpha, beta)
+            new_board = transition(board, self.player, action) # Make a hypothetical player's move
+            score = self.min_value(new_board, depth + 1, alpha, beta) # Calculate the score
 
-            alpha = max(alpha, score)
+            alpha = max(alpha, score) # Update alpha value
 
             if beta <= alpha:
                 return beta
@@ -449,7 +452,7 @@ class Agent007(ReversiAgent):
         elif (board == self.player).sum() < (board == (self.player * -1)).sum():
             return -9999
         else:
-            return 0
+            return 0 # Return utility values based on piece count
 
     def evaluation(self, board: np.ndarray) -> float:
         """
@@ -459,7 +462,7 @@ class Agent007(ReversiAgent):
         Page 8, Figure 10
         Evaluation Score = Max Player Value - Min Player Value
         """
-        STATIC_WEIGHTS = [
+        STATIC_WEIGHTS = [ # Static weight matrix for board evaluation
             [4.622507, -1.477853, 1.409644, -0.066975, -0.305214, 1.633019, -1.050899, 4.365550],
             [-1.329145, -2.245663, -1.060633, -0.541089, -0.332716, -0.475830, -2.274535, -0.032595],
             [2.681550, -0.906628, 0.229372, 0.059260, -0.150415, 0.321982, -1.145060, 2.986767],
@@ -471,6 +474,7 @@ class Agent007(ReversiAgent):
         ]
         
         # Evaluate the board using piece count and static weights
+        # Initialize player scores
         max_player = 0
         min_player = 0
         
@@ -481,9 +485,9 @@ class Agent007(ReversiAgent):
                 elif board[i, j] == -self.player:
                     min_player += STATIC_WEIGHTS[i][j]
         
-        evaluation_score = max_player - min_player
+        evaluation_score = max_player - min_player # Calculate the evaluation score
         
-        return evaluation_score
+        return evaluation_score # Return the evaluation score
     
 """Uses heuristic components and static weight table as evaluation function"""
 class Agent47(ReversiAgent):
