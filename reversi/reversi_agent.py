@@ -3,7 +3,13 @@ This module contains agents that play reversi.
 
 Version 3.1
 """
-
+"""
+Members:
+6488018 Ramita Deeprom
+6488025 Thitiwut Harnphatcharapanukorn
+6488079 Burit Sihabut
+6488215 Pongsakorn Kongkaewrasamee
+"""
 import abc
 import random
 import asyncio
@@ -364,7 +370,7 @@ class Agent007(ReversiAgent):
     
 """Uses heuristic components and static weight table as evaluation function"""
 class Agent47(ReversiAgent):
-    DEPTH_LIMIT = 6
+    DEPTH_LIMIT = 10
 
     def search(
             self, board, valid_actions,
